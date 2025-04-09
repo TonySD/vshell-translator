@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 clap={ version = "4.5.35", features = ["derive"] }
 colog = "1.3.0"
+hexdump = "0.1.2"
 log = "0.4.27"
 memchr = { version = "2.7.4", default-features = false }
 rust-translate = "0.1.3"

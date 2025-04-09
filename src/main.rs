@@ -1,5 +1,6 @@
 use clap::Parser;
 use configuration::Config;
+use file::FoundChineseBytes;
 use std::process::ExitCode;
 use rust_translate::translate;
 use log::{info, warn, error};
@@ -18,6 +19,14 @@ async fn main() -> ExitCode {
             .map(|c| format!("{:x}", c))
             .collect::<Vec<String>>()
     );
+
+    if let Some(payload) = config.patch_with {
+        if payload.len() > chinese_bytes.len() {
+            error!("Your payload is bigger ({} bytes) than available ({} bytes)", payload.len(), chinese_bytes.len());
+            return ExitCode::FAILURE;
+        }
+    }
+
     match translate(config.chinese_chars.as_str(), "zh", "en").await {
         Ok(translate) => info!("English translate: {:?}", translate),
         Err(e) => warn!("Error getting english translate: {:?}", e)
@@ -27,7 +36,7 @@ async fn main() -> ExitCode {
         Err(e) => warn!("Error getting russian translate: {:?}", e)
     }
 
-    let found_occurences = match file::find_all_occurences(&config.binary_file, &chinese_bytes) {
+    let mut found_occurences = match file::find_all_occurences(&config.binary_file, &chinese_bytes) {
         Ok(found) => {
             info!("Found bytes in file: {:?}", found);
             found
@@ -37,6 +46,18 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+
+    if config.iterate_every_occurence {
+        found_occurences = match file::iterate_every_occurence(&config.binary_file, found_occurences, config.number_of_rows) {
+            Ok(result) => result,
+            Err(e) => {
+                error!("Error while filtering found chars: {:?}", e);
+                return ExitCode::FAILURE
+            }
+        };
+    }
+
+
     
     ExitCode::SUCCESS
 }
