@@ -38,7 +38,12 @@ async fn main() -> ExitCode {
 
     let mut found_occurences = match file::find_all_occurences(&config.binary_file, &chinese_bytes) {
         Ok(found) => {
-            info!("Found bytes in file: {:?}", found);
+            info!("Found bytes in file:");
+            for (i, found_occurence) in found.iter().enumerate() {
+                println!("{} occurence: ", i + 1);
+                println!("   - start:   0x{:x}", found_occurence.start);
+                println!("   - end:     0x{:x}\n", found_occurence.end);
+            }
             found
         },
         Err(e) => {
@@ -58,7 +63,15 @@ async fn main() -> ExitCode {
     }
 
     match patch_all_findings(found_occurences, &config.binary_file, &config.output_file, config.patch_with) {
-        Ok(result) => info!("Patched file written to {}, written canaries: {:?}", &config.output_file, result),
+        Ok(result) => {
+            info!("Patched file written to {}, written canaries: ", &config.output_file);
+            for (i, canary) in result.iter().enumerate() {
+                println!("{} canary: ", i + 1);
+                println!("   - content: {}", canary.content);
+                println!("   - start:   0x{:x}", canary.start);
+                println!("   - end:     0x{:x}\n\n", canary.end);
+            }
+        },
         Err(e) => {
             error!("Error while writing file: {:?}", e);
             return ExitCode::FAILURE
