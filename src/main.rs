@@ -1,6 +1,6 @@
 use clap::Parser;
 use configuration::Config;
-use file::{generate_canary, FoundChineseBytes};
+use file::{generate_canary, patch_all_findings, FoundChineseBytes};
 use std::process::ExitCode;
 use rust_translate::translate;
 use log::{info, warn, error};
@@ -20,7 +20,7 @@ async fn main() -> ExitCode {
             .collect::<Vec<String>>()
     );
 
-    if let Some(payload) = config.patch_with {
+    if let Some(payload) = &config.patch_with {
         if payload.len() > chinese_bytes.len() {
             error!("Your payload is bigger ({} bytes) than available ({} bytes)", payload.len(), chinese_bytes.len());
             return ExitCode::FAILURE;
@@ -57,11 +57,13 @@ async fn main() -> ExitCode {
         };
     }
 
-    for found_occurence in found_occurences.into_iter() {
-        
-    }
-
-    println!("canary: {}", generate_canary(31));
+    match patch_all_findings(found_occurences, &config.binary_file, &config.output_file, config.patch_with) {
+        Ok(result) => info!("Patched file written to {}, written canaries: {:?}", &config.output_file, result),
+        Err(e) => {
+            error!("Error while writing file: {:?}", e);
+            return ExitCode::FAILURE
+        }
+    };
     
     ExitCode::SUCCESS
 }
