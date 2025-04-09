@@ -1,6 +1,6 @@
 use clap::Parser;
 use configuration::Config;
-use file::FoundChineseBytes;
+use file::{generate_canary, FoundChineseBytes};
 use std::process::ExitCode;
 use rust_translate::translate;
 use log::{info, warn, error};
@@ -57,7 +57,11 @@ async fn main() -> ExitCode {
         };
     }
 
+    for found_occurence in found_occurences.into_iter() {
+        
+    }
 
+    println!("canary: {}", generate_canary(31));
     
     ExitCode::SUCCESS
 }

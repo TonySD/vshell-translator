@@ -1,4 +1,5 @@
 use log::{debug};
+use rand::RngCore;
 use memchr::memmem;
 
 pub fn open_binary_file(filepath: &str) -> Result<Vec<u8>, std::io::Error> {
@@ -54,4 +55,60 @@ pub fn iterate_every_occurence(filepath: &str, found_occurences: Vec<FoundChines
     };
 
     Ok(filtered_occurences)
+}
+
+#[derive(Debug)]
+pub struct Canary {
+    pub start: usize,
+    pub end: usize,
+    pub content: String
+}
+
+pub fn generate_canary(size: usize) -> String {
+    let mut result = vec![0 as u8; (size / 2) + 1];
+    rand::rng().fill_bytes(&mut result);
+    let mut result: String = result.iter().map(|byte| format!("{:02x}", byte)).collect();
+    result.truncate(size);
+    result
+}
+
+pub fn patch_all_findings(found_occurences: Vec<FoundChineseBytes>, filename: &str, output_filename: &str, patch_with: Option<String>) -> Result<Vec<Canary>, std::io::Error> {
+    let mut size: usize;
+    let mut current_canary: String;
+    let mut canaries: Vec<Canary> = Vec::new();
+    let mut file_content = open_binary_file(filename)?;
+
+    for occurence in found_occurences.into_iter() {
+        size = occurence.end - occurence.start;
+        current_canary = match &patch_with {
+            Some(canary) => canary.clone(),
+            None => {
+                let result_canary;
+                loop {
+                    let candidate = generate_canary(size);
+                    if !canaries.iter().any(|c| c.content == candidate) {
+                        result_canary = candidate;
+                        break;
+                    }
+                };
+                result_canary
+            }
+        };
+
+        for (i, canary_char) in current_canary.as_bytes().iter().enumerate() {
+            file_content[occurence.start + i] = *canary_char;
+        }
+
+        canaries.push(
+            Canary {
+                start: occurence.start,
+                end: occurence.end,
+                content: current_canary
+            }
+        );
+    }
+
+    std::fs::write(output_filename, file_content)?;
+
+    Ok(canaries)
 }
