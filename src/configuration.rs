@@ -5,6 +5,9 @@ pub struct Config {
     #[clap(short, long)]
     pub verbose: bool,
 
-    #[clap(short, long)]
+    #[clap(short, long, required=true)]
     pub chinese_chars: String,
+
+    #[clap(short, long, required=true)]
+    pub binary_file: String,
 }
